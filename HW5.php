@@ -1,6 +1,6 @@
 <?php
 
-function printMonthWorkDays(int $year, int $month): void
+function printWorkSchedule(int $year, int $month, int &$dayCounter): void
 {
     $months = [
         1 => 'Январь',
@@ -18,33 +18,60 @@ function printMonthWorkDays(int $year, int $month): void
     ];
 
     $monthName = $months[$month] ?? 'Неизвестный месяц';
-
     echo "Месяц: $monthName $year" . PHP_EOL;
-    echo "Все дни месяца:" . PHP_EOL;
+
+    $weekDaysHeader = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    echo implode(' ', array_map(fn($d) => str_pad($d, 4), $weekDaysHeader)) . PHP_EOL;
+
+    $currentDay = 1;
+
+    $firstDate = new DateTime("$year-$month-01");
+    $firstWeekDay = (int)$firstDate->format('N');
+
+    for ($i = 1; $i < $firstWeekDay; $i++) {
+        printf("%-4s", '');
+    }
 
     $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 
-    for ($day = 1; $day <= $daysInMonth; $day++) {
-        $date = new DateTime("$year-$month-$day");
+    while ($currentDay <= $daysInMonth) {
+        if ($dayCounter % 3 === 1) {
+            $date = new DateTime("$year-$month-$currentDay");
+            $weekDay = (int)$date->format('N');
 
-        $weekDay = (int)$date->format('N');
+            if ($weekDay >= 6) {
+                $nextMonday = clone $date;
+                $nextMonday->modify('next monday');
+                $nextMondayDay = (int)$nextMonday->format('j');
+                $nextMondayMonth = (int)$nextMonday->format('n');
 
-        if ($weekDay <= 5) {
-            echo "\033[32m$day\033[0m ";
+                if ($nextMondayMonth == $month) {
+                    printf("%-4s", '');
+                } else {
+                    break;
+                }
+            } else {
+                $coloredDay = "\033[31m" . str_pad($currentDay, 4) . "\033[0m";
+                printf("%-4s", $coloredDay);
+            }
         } else {
-            echo "$day "; 
+            $coloredDay = "\033[32m" . str_pad($currentDay, 4) . "\033[0m";
+            printf("%-4s", $coloredDay);
         }
 
-        if ($weekDay === 7 || $day === $daysInMonth) {
+        if ((($firstWeekDay + $currentDay - 1) % 7) == 0) {
             echo PHP_EOL;
         }
+
+        $currentDay++;
+        $dayCounter++;
     }
 
-    echo PHP_EOL . "Рабочие дни выделены зелёным цветом." . PHP_EOL . PHP_EOL;
+    echo PHP_EOL . PHP_EOL;
 }
 
 if ($argc < 4) {
-    echo "Использование: php work_days.php <год> <месяц> <количество_месяцев>" . PHP_EOL;
+    echo "Использование: php HW5.php <год> <месяц> <количество_месяцев>" . PHP_EOL;
     exit(1);
 }
 
@@ -57,9 +84,13 @@ if ($startMonth < 1 || $startMonth > 12 || $startYear < 1900 || $startYear > 210
     exit(1);
 }
 
+$dayCounter = 1; 
+
 for ($i = 0; $i < $totalMonths; $i++) {
     $currentYear = (int)date('Y', mktime(0, 0, 0, $startMonth + $i, 1, $startYear));
-    $currentMonth = ((int)date('n', mktime(0, 0, 0, $startMonth + $i, 1, $startYear)));
+    $currentMonth = (int)date('n', mktime(0, 0, 0, $startMonth + $i, 1, $startYear));
 
-    printMonthWorkDays($currentYear, $currentMonth);
+    printWorkSchedule($currentYear, $currentMonth, $dayCounter);
 }
+
+echo "Рабочие дни выделены красным цветом. Нерабочие дни — зелёным." . PHP_EOL;
