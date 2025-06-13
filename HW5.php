@@ -35,30 +35,75 @@ function printWorkSchedule(int $year, int $month, int &$dayCounter): void
         printf("%-4s", '');
     }
 
-    for ($day = 1; $day <= $daysInMonth; $day++) {
-        $date = new DateTime("$year-$month-$day");
-        $weekDay = (int)$date->format('N');
+    $actualWorkingDays = [];
+
+    $currentDay = 1;
+    $currentDate = clone $firstDate;
+
+    while ($currentDay <= $daysInMonth) {
+        $weekDay = (int)$currentDate->format('N');
 
         if ($weekDay >= 6) {
-            $coloredDay = "\033[32m" . str_pad($day, 4) . "\033[0m";
-        } elseif ($dayCounter % 3 === 1) {
-            $coloredDay = "\033[31m" . str_pad($day, 4) . "\033[0m";
+            $currentDate->modify('+1 day');
+            $currentDay++;
+            continue;
+        }
+
+        if (empty($actualWorkingDays)) {
+            $actualWorkingDays[] = $currentDay;
+            $dayCounter++;
+            $currentDate->modify('+3 days');
+            $currentDay += 3;
+            continue;
+        }
+
+        $lastWorkDay = end($actualWorkingDays);
+        $diffDays = $currentDay - $lastWorkDay;
+
+        if ($diffDays >= 3) {
+            if ($diffDays == 3) {
+                $actualWorkingDays[] = $currentDay;
+                $dayCounter++;
+                $currentDate->modify('+3 days');
+                $currentDay += 3;
+            } else {
+                $actualWorkingDays[] = $currentDay;
+                $dayCounter++;
+                $currentDate->modify('+3 days');
+                $currentDay += 3;
+            }
         } else {
-            $coloredDay = "\033[32m" . str_pad($day, 4) . "\033[0m";
+            $currentDate->modify('+1 day');
+            $currentDay++;
+        }
+    }
+
+    $currentDay = 1;
+    $currentDate = clone $firstDate;
+
+    while ($currentDay <= $daysInMonth) {
+        $weekDay = (int)$currentDate->format('N');
+
+        if (in_array($currentDay, $actualWorkingDays)) {
+            $coloredDay = "\033[31m" . str_pad($currentDay, 4) . "\033[0m";
+        } elseif ($weekDay >= 6) {
+            $coloredDay = "\033[32m" . str_pad($currentDay, 4) . "\033[0m";
+        } else {
+            $coloredDay = "\033[32m" . str_pad($currentDay, 4) . "\033[0m";
         }
 
         printf("%-4s", $coloredDay);
 
-        if ((($firstWeekDay + $day - 1) % 7) == 0 || $day == $daysInMonth) {
+        if ((($firstWeekDay + $currentDay - 1) % 7) == 0 || $currentDay == $daysInMonth) {
             echo "\n";
         }
 
-        $dayCounter++;
+        $currentDate->modify('+1 day');
+        $currentDay++;
     }
 
     echo "\n";
 }
-
 
 if ($argc < 4) {
     echo "Использование: php HW5.php <год> <месяц> <кол_мес>\n";
